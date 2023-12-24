@@ -1,15 +1,16 @@
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
 import java.util.*;
+import java.util.stream.Collectors;
 
-//TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
-// click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
+
 public class Main {
     //TODO Переделать с hash map на tree
     private static final String ROOT_PATH = "root";
 
     private static final File file = new File(ROOT_PATH);
 
-    private static final ArrayList<FileConf> files = new ArrayList<>();
+    private static final ArrayList<NodeFile> files = new ArrayList<>();
 
     private static final ArrayList<NodeFile> FILE_PATHS = new ArrayList<NodeFile>();
 
@@ -18,56 +19,48 @@ public class Main {
         Queue<File> hip = new LinkedList<>();
 
         hip.add(file);
-        HashMap<String,NodeFile> outFile = new HashMap<>();
+        HashMap<String, NodeFile> outFile = new HashMap<>();
 
-        while (!hip.isEmpty()){
+        while (!hip.isEmpty()) {
 
             File file = Objects.requireNonNull(hip.peek());
 
-            if(file.isDirectory()){
+            if (file.isDirectory()) {
                 hip.addAll(List.of(Objects.requireNonNull(file.listFiles())));
             }
-            if(file.isFile()){
-                String path = file.getPath().replace(ROOT_PATH,"");
-                outFile.put(path, new NodeFile(file,path));
+            if (file.isFile()) {
+                String path = file.getPath().replace(ROOT_PATH, "");
+                outFile.put(path, new NodeFile(file, path));
             }
             hip.remove();
         }
-
-
-
-
-
-
-
-        List<NodeFile> fileConfs = outFile.values().stream().toList();
-
 
         for (NodeFile fileRead : outFile.values()) {
             List<String> fileInList = FileReaderUtil.readFile(fileRead.getFile());
 
             ArrayList<String> filesPaths = new ArrayList<>();
 
-            for (int l =0;l<fileInList.size();l++){
-                if(fileInList.get(l).contains("require")){
+            for (int l = 0; l < fileInList.size(); l++) {
+                if (fileInList.get(l).contains("require")) {
                     int indexF = fileInList.get(l).indexOf("'");
                     int indexL = fileInList.get(l).lastIndexOf("'");
 
-                    String path = fileInList.get(l).substring(indexF+1,indexL);
+                    String path = fileInList.get(l).substring(indexF + 1, indexL);
                     filesPaths.add(path);
                 }
             }
             ArrayList<NodeFile> filePaths = new ArrayList<>();
 
             for (String s : filesPaths) {
-                filePaths.add(outFile.get(s));
+                if (!filePaths.contains(outFile.get(s))) {
+                    filePaths.add(outFile.get(s));
+                }
             }
 
-            FILE_PATHS.add(new NodeFile(fileRead.getPath().replace(ROOT_PATH,""), filePaths));
+            FILE_PATHS.add(new NodeFile(fileRead.getFile(), fileRead.getPath().replace(ROOT_PATH, ""), filePaths));
         }
 
-
-        for (int l = 0; l < FILE_PATHS.size(); l++){
+        for (int l = 0; l < FILE_PATHS.size(); l++) {
 
             ArrayList<NodeFile> filesChild = FILE_PATHS.get(l).getNodeFilesChild();
 
@@ -77,115 +70,100 @@ public class Main {
                 String path = nodeFile.getPath();
 
                 for (int j = 0; j < FILE_PATHS.size(); j++) {
-                    if(FILE_PATHS.get(j).getPath().equals(path)){
+                    if (FILE_PATHS.get(j).getPath().equals(path)) {
                         ArrayList<NodeFile> ch = FILE_PATHS.get(j).getNodeFilesChild();
                         nodeFile.setNodeFilesChild(ch);
                         FILE_PATHS.remove(j);
                     }
                 }
-
-
             }
 
         }
-
-
-
-        ArrayList<FilePaths> filePaths = new ArrayList<>();
 
         ArrayList<NodeFile> filePathsQueue = new ArrayList<>(FILE_PATHS);
 
 
-        for (NodeFile n : filePathsQueue){
-            NodeFile next = n;
-
-
+        for (NodeFile n : filePathsQueue) {
 
             Queue<NodeFile> nodeFiles = new LinkedList<>();
             nodeFiles.add(n);
             NodeFile curRef;
+            ArrayList<NodeFile> refs = new ArrayList<>();
             while (!nodeFiles.isEmpty()) {
-
-                ArrayList<NodeFile> refs = new ArrayList<>();
 
                 curRef = nodeFiles.poll();
 
                 while (true) {
-
-                    if(refs.contains(curRef)){
-                        throw new RuntimeException("asd");
+                    NodeFile finalCurRef = curRef;
+                    if (refs.stream()
+                            .filter(f -> f.getPath().equals(finalCurRef.getPath())).findFirst().isPresent()) {
+                        throw new RuntimeException(refs.stream().map(m -> m.getPath()).collect(Collectors.toList()).toString());
                     }
-
-                    System.out.println(curRef.getPath());
-
                     refs.add(curRef);
                     if (curRef.getNodeFilesChild().isEmpty()) {
                         break;
                     }
-
                     for (int i = 0; i < curRef.getNodeFilesChild().size() - 1; i++) {
                         nodeFiles.add(curRef.getNodeFilesChild().get(i));
                     }
-
                     curRef = curRef.getNodeFilesChild().get(curRef.getNodeFilesChild().size() - 1);
-
                 }
             }
-
-
-
-            System.out.println("\n\n\n\n");
-
         }
 
-//        let cur_ref;         // текущая ссылка
-//        let memory = [tree]; // память (стек)
-//        // в начале память содержит ссылку на корень заданного дерева
-//
-//        // внешний цикл, перебирающий линии заглублений
-//        // закончить цикл, если не получается извлечь ссылку из памяти (стека)
-//        while ( cur_ref = memory.pop() ) {
-//
-//            // внутренний цикл обхода каждой линии заглубления дерева до листа
-//            while ( true ) {
-//                // ...обработка данных узла...
-//                console.log(cur_ref.data); // просто выводим в консоль
-//
-//                // если это лист, выйти из цикла
-//                if ( !cur_ref.refs ) break;
-//
-//                // помещаем ветви, ведущие налево, в память (стек)
-//                for (let i = 0; i < cur_ref.refs.length - 1; i++) {
-//                    memory.push( cur_ref.refs[i] );
-//                }
-//                // переходим по ветви, ведущей направо
-//                cur_ref = cur_ref.refs[cur_ref.refs.length - 1];
-//            }
-//        }
+        LinkedList<NodeFile> nodesOut = new LinkedList<>();
 
+        for (NodeFile n : filePathsQueue) {
+            Queue<NodeFile> queue = new LinkedList<>();
+            queue.add(n);
 
+            while (!queue.isEmpty()) {
+                NodeFile node = queue.remove();
 
+                boolean presentNot2 = true;
+                for (int j = 0; j < nodesOut.size(); j++) {
+                    if (nodesOut.get(j).getPath().equals(node.getPath())) {
+                        presentNot2 = false;
+                        break;
+                    }
+                }
+                if (presentNot2 || nodesOut.isEmpty()) {
+                    nodesOut.add(node);
+                }
 
-
-
-
+                ArrayList<NodeFile> nodeFilesChild = node.getNodeFilesChild();
+                for (int i = 0; i < nodeFilesChild.size(); i++) {
+                    queue.add(nodeFilesChild.get(i));
+                    int I = i;
+                    boolean presentNot = true;
+                    for (int j = 0; j < nodesOut.size(); j++) {
+                        if (nodesOut.get(j).getPath().equals(nodeFilesChild.get(i).getPath())) {
+                            presentNot = false;
+                        }
+                    }
+                    if (presentNot) {
+                        nodesOut.add(nodeFilesChild.get(i));
+                    }
+                }
+            }
+        }
         for (NodeFile fileRead : outFile.values()) {
             List<String> fileInList = FileReaderUtil.readFile(fileRead.getFile());
 
             ArrayList<NodeFile> nodeFiles = new ArrayList<>();
 
-            for (int l =0;l<fileInList.size();l++){
-                if(fileInList.get(l).contains("require")){
+            for (int l = 0; l < fileInList.size(); l++) {
+                if (fileInList.get(l).contains("require")) {
                     int indexF = fileInList.get(l).indexOf("'");
                     int indexL = fileInList.get(l).lastIndexOf("'");
 
-                    String path = fileInList.get(l).substring(indexF+1,indexL);
+                    String path = fileInList.get(l).substring(indexF + 1, indexL);
                     NodeFile f = outFile.get(path);
                     nodeFiles.add(new NodeFile(f.getFile(), path));
 
                     List<String> strokiFile = FileReaderUtil.readFile(f.getFile());
                     fileInList.remove(l);
-                    fileInList.addAll(l,strokiFile);
+                    fileInList.addAll(l, strokiFile);
                 }
             }
 
@@ -193,17 +171,17 @@ public class Main {
 
             for (int i = 0; i < fileInList.size(); i++) {
                 sb.append(fileInList.get(i));
-                if(i != fileInList.size() -1){
+                if (i != fileInList.size() - 1) {
                     sb.append("\n");
                 }
             }
-            files.add(new FileConf(sb.toString(),fileRead.getFile().getName(), fileRead.getPath().replace(ROOT_PATH,"")));
+            files.add(new NodeFile(sb.toString(), fileRead.getPath().replace(ROOT_PATH, "")));
         }
 
-        QuickSort.quickSort(files,0,files.size() -1);
 
-        for (FileConf s : files) {
+        for (NodeFile s : files) {
             System.out.println(s.getPath());
+            System.out.println();
         }
     }
 

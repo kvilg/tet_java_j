@@ -3,6 +3,7 @@ import java.util.ArrayList;
 
 public class NodeFile {
 
+    private  String text;
     private File file;
     private String path;
     private ArrayList<NodeFile> nodeFilesChild = new ArrayList<>();
@@ -14,8 +15,13 @@ public class NodeFile {
         this.file = file;
         this.path = path;
     }
+    public NodeFile(String text, String path) {
+        this.text = text;
+        this.path = path;
+    }
 
-    public NodeFile(String path,ArrayList<NodeFile> nodeFiles) {
+    public NodeFile(File file, String path,ArrayList<NodeFile> nodeFiles) {
+        this.file = file;
         this.path = path;
         this.nodeFilesChild = nodeFiles;
     }
@@ -53,4 +59,11 @@ public class NodeFile {
         this.nodeFilesChild.addAll(nodeFiles);
     }
 
+    public String getText() {
+        return text;
+    }
+
+    public void setText(String text) {
+        this.text = text;
+    }
 }
